@@ -349,12 +349,12 @@ export function RoutePlanner({ onSearch, isSearching }: RoutePlannerProps) {
       animate={{ opacity: 1, x: 0 }}
       className="h-full flex flex-col"
     >
-      <div className="p-6 border-b border-border">
+      <div className="p-4 md:p-6 border-b border-border">
         <h2 className="text-lg font-semibold mb-1">Plan Your Route</h2>
         <p className="text-sm text-muted-foreground">Find the safest path to your destination</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex-1 p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto">
         {/* Error Message */}
         {error && (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
@@ -490,7 +490,7 @@ export function RoutePlanner({ onSearch, isSearching }: RoutePlannerProps) {
       </form>
 
       {/* Quick Tips */}
-      <div className="p-6 border-t border-border">
+      <div className="p-4 md:p-6 border-t border-border">
         <p className="text-xs text-muted-foreground leading-relaxed">
           💡 <span className="font-medium">Tip:</span> Routes are analyzed for lighting, crowd presence,
           nearby public places, and historical safety data.
