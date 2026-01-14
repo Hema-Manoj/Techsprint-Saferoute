@@ -173,7 +173,7 @@ export function RealMap({
   }, [currentPosition, map, maps, userMarker, showNavigation]);
 
   return (
-    <div className="w-full h-full rounded-xl overflow-hidden relative">
+    <div className="w-full h-full rounded-xl md:rounded-xl rounded-none overflow-hidden relative">
       <Map
         defaultCenter={center}
         defaultZoom={13}

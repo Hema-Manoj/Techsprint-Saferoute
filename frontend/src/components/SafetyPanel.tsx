@@ -58,12 +58,12 @@ export function SafetyPanel({ routeData }: SafetyPanelProps) {
       animate={{ opacity: 1, x: 0 }}
       className="h-full flex flex-col overflow-hidden"
     >
-      <div className="p-6 border-b border-border">
+      <div className="p-4 md:p-6 border-b border-border flex-shrink-0">
         <h2 className="text-lg font-semibold mb-1">Safety Analysis</h2>
         <p className="text-sm text-muted-foreground">{data.name}</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Overall Safety Score */}
         <Card variant="glow">
           <CardContent className="p-6">

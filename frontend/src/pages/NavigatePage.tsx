@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Play, Flag, Lock } from "lucide-react";
+import { ArrowLeft, Play, Flag, Lock, Menu, Info } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { RealMap } from "@/components/RealMap";
@@ -14,6 +14,7 @@ import { getRoutes, SelectedPlace } from "@/services/api";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import AuthButton from "@/components/AuthButton";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 type AppState = "planning" | "searching" | "routes" | "navigating" | "completed";
 
@@ -42,6 +43,8 @@ export default function NavigatePage() {
   const [navigationProgress, setNavigationProgress] = useState(0);
   const [showFeedback, setShowFeedback] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
+  const [showRoutePlannerSheet, setShowRoutePlannerSheet] = useState(false);
+  const [showSafetySheet, setShowSafetySheet] = useState(false);
 
   // Routes from backend
   const [routes, setRoutes] = useState<any[]>([]);
@@ -233,14 +236,33 @@ export default function NavigatePage() {
     }
   }, [googleMapsApiKey]);
 
+  // Auto-open route planner sheet on mobile when in planning state
+  useEffect(() => {
+    // Only on mobile (check window width)
+    const checkMobile = () => window.innerWidth < 768;
+    const isMobile = checkMobile();
+    
+    // Auto-open sheet on mobile when:
+    // 1. In planning state
+    // 2. No routes have been found yet
+    // This ensures users see the input screen first on mobile
+    if (isMobile && appState === "planning" && routes.length === 0) {
+      // Small delay to ensure smooth transition from landing page
+      const timer = setTimeout(() => {
+        setShowRoutePlannerSheet(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [appState, routes.length]);
+
   return (
     <APIProvider apiKey={googleMapsApiKey || ""} libraries={['places', 'geometry']}>
-      <div className="min-h-screen bg-background flex">
-        {/* Left Sidebar */}
+      <div className="h-screen md:min-h-screen bg-background flex flex-col md:flex-row overflow-hidden">
+        {/* Left Sidebar - Desktop Only */}
         <motion.aside
           initial={{ x: -320 }}
           animate={{ x: 0 }}
-          className="w-80 border-r border-border bg-card flex flex-col flex-shrink-0"
+          className="hidden md:flex w-80 border-r border-border bg-card flex-col flex-shrink-0"
         >
           {/* Header */}
           <div className="p-4 border-b border-border flex items-center gap-3">
@@ -259,10 +281,62 @@ export default function NavigatePage() {
           <RoutePlanner onSearch={handleSearch} isSearching={appState === "searching"} />
         </motion.aside>
 
+        {/* Mobile Route Planner Sheet */}
+        <Sheet open={showRoutePlannerSheet} onOpenChange={setShowRoutePlannerSheet}>
+          <SheetContent side="bottom" className="h-[90vh] max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center gap-3 mb-4 pb-4 border-b">
+              <Button variant="ghost" size="icon" asChild>
+                <Link to="/">
+                  <ArrowLeft className="w-4 h-4" />
+                </Link>
+              </Button>
+              <div>
+                <h1 className="font-semibold">SafeRoute AI</h1>
+                <p className="text-xs text-muted-foreground">Plan Your Route</p>
+              </div>
+            </div>
+            <RoutePlanner onSearch={(source, dest, mode) => {
+              handleSearch(source, dest, mode);
+              setShowRoutePlannerSheet(false);
+            }} isSearching={appState === "searching"} />
+          </SheetContent>
+        </Sheet>
+
         {/* Main Map Area */}
-        <main className="flex-1 relative overflow-hidden">
+        <main className="flex-1 relative overflow-hidden min-h-0">
+          {/* Mobile Header */}
+          <div className="md:hidden absolute top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border p-3 flex items-center justify-between h-12">
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="/">
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+            </Button>
+            <h1 className="font-semibold text-sm">SafeRoute AI</h1>
+            <div className="flex gap-2">
+              {appState === "routes" || appState === "navigating" || appState === "completed" ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowSafetySheet(true)}
+                  className="relative"
+                >
+                  <Info className="w-4 h-4" />
+                </Button>
+              ) : null}
+              {/* Menu button to open route planner - always available on mobile */}
+              <Sheet open={showRoutePlannerSheet} onOpenChange={setShowRoutePlannerSheet}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="w-4 h-4" />
+                  </Button>
+                </SheetTrigger>
+              </Sheet>
+            </div>
+          </div>
+
           {/* Map - Keep mounted at all times to prevent blank screen */}
-          <div className="absolute inset-0">
+          {/* On mobile, hide map when in planning state to prioritize route input */}
+          <div className={`absolute inset-0 md:inset-0 top-12 md:top-0 ${appState === "planning" && routes.length === 0 ? "hidden md:block" : ""}`}>
             <RealMap
               routes={routes}
               onRouteSelect={handleRouteSelect}
@@ -271,6 +345,18 @@ export default function NavigatePage() {
               center={selectedPlaces.source ? { lat: selectedPlaces.source.lat, lng: selectedPlaces.source.lng } : undefined}
             />
           </div>
+          
+          {/* Mobile placeholder when map is hidden during planning */}
+          {appState === "planning" && routes.length === 0 && (
+            <div className="md:hidden absolute inset-0 top-12 bg-gradient-to-br from-background via-background/95 to-background/90 flex items-center justify-center">
+              <div className="text-center px-6">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Menu className="w-8 h-8 text-primary/50" />
+                </div>
+                <p className="text-muted-foreground text-sm">Enter your route details above</p>
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <AnimatePresence>
@@ -279,9 +365,9 @@ export default function NavigatePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50"
+                className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-4 w-full max-w-xs md:max-w-none"
               >
-                <Button variant="hero" size="lg" onClick={handleStartNavigation}>
+                <Button variant="hero" size="lg" onClick={handleStartNavigation} className="w-full md:w-auto">
                   <Play className="w-4 h-4" />
                   Start Navigation
                 </Button>
@@ -307,7 +393,7 @@ export default function NavigatePage() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm z-30"
+                className="absolute inset-0 md:inset-0 top-12 md:top-0 flex items-center justify-center bg-background/60 backdrop-blur-sm z-30"
               >
                 <div className="text-center">
                   <motion.div
@@ -326,26 +412,45 @@ export default function NavigatePage() {
           </AnimatePresence>
         </main>
 
-        {/* Right Panel */}
+        {/* Right Panel - Desktop Only */}
         <AnimatePresence>
           {(appState === "routes" || appState === "navigating" || appState === "completed") && activeRoute && (
-            <motion.aside
-              initial={{ x: 360 }}
-              animate={{ x: 0 }}
-              exit={{ x: 360 }}
-              className="w-[360px] border-l border-border bg-card flex-shrink-0"
-            >
-              <SafetyPanel
-                routeData={{
-                  name: activeRoute.summary || "Selected Route",
-                  safetyScore: activeRoute.safetyScore,
-                  duration: activeRoute.duration || activeRoute.legs[0]?.duration?.text || "N/A",
-                  distance: activeRoute.distance || activeRoute.legs[0]?.distance?.text || "N/A",
-                  activeUsers: activeRoute.activeUsers,
-                  segments: activeRoute.segments || []
-                }}
-              />
-            </motion.aside>
+            <>
+              {/* Desktop Sidebar */}
+              <motion.aside
+                initial={{ x: 360 }}
+                animate={{ x: 0 }}
+                exit={{ x: 360 }}
+                className="hidden md:flex w-[360px] border-l border-border bg-card flex-shrink-0"
+              >
+                <SafetyPanel
+                  routeData={{
+                    name: activeRoute.summary || "Selected Route",
+                    safetyScore: activeRoute.safetyScore,
+                    duration: activeRoute.duration || activeRoute.legs[0]?.duration?.text || "N/A",
+                    distance: activeRoute.distance || activeRoute.legs[0]?.distance?.text || "N/A",
+                    activeUsers: activeRoute.activeUsers,
+                    segments: activeRoute.segments || []
+                  }}
+                />
+              </motion.aside>
+
+              {/* Mobile Safety Sheet */}
+              <Sheet open={showSafetySheet} onOpenChange={setShowSafetySheet}>
+                <SheetContent side="bottom" className="h-[90vh] max-h-[90vh] overflow-y-auto">
+                  <SafetyPanel
+                    routeData={{
+                      name: activeRoute.summary || "Selected Route",
+                      safetyScore: activeRoute.safetyScore,
+                      duration: activeRoute.duration || activeRoute.legs[0]?.duration?.text || "N/A",
+                      distance: activeRoute.distance || activeRoute.legs[0]?.distance?.text || "N/A",
+                      activeUsers: activeRoute.activeUsers,
+                      segments: activeRoute.segments || []
+                    }}
+                  />
+                </SheetContent>
+              </Sheet>
+            </>
           )}
         </AnimatePresence>
 

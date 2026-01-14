@@ -77,7 +77,7 @@ export function LiveMonitor({ isActive, onStop, progress = 0 }: LiveMonitorProps
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="absolute bottom-6 left-6 right-6 z-20"
+      className="absolute bottom-4 md:bottom-6 left-4 md:left-6 right-4 md:right-6 z-20 max-w-md md:max-w-none mx-auto md:mx-0"
     >
       <Card variant="glass" className="overflow-hidden">
         <CardContent className="p-4">
