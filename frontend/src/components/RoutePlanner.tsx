@@ -13,7 +13,7 @@ interface RoutePlannerProps {
   isSearching?: boolean;
 }
 
-const API_URL = "/api";
+const API_URL = '/api';
 
 export function RoutePlanner({ onSearch, isSearching }: RoutePlannerProps) {
   const [sourceInput, setSourceInput] = useState("");
